@@ -13,6 +13,9 @@ def search(keyword, location, page=0):
     print(f"[DEBUG] Indeed URL: {url}")
     
     html = scraper.get(url).text
+    with open("debug_indeed.html", "w") as f:
+        f.write(html)
+        print("Salvato debug_indeed.html con la risposta Indeed")
     soup = BeautifulSoup(html, "html.parser")
     
     # Salva l'HTML per debug (opzionale)
