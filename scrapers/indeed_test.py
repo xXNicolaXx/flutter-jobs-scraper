@@ -4,9 +4,11 @@ from bs4 import BeautifulSoup
 scraper = cloudscraper.create_scraper(
     browser={
         "browser": "chrome",
-        "platform": "darwin",
+        "platform": "linux",
+        "mobile": False
     }
 )
+
 
 def search(keyword, location, page=0):
     url = f"https://it.indeed.com/jobs?q={keyword}&l={location}&start={page*10}"

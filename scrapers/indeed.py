@@ -4,7 +4,8 @@ from bs4 import BeautifulSoup
 scraper = cloudscraper.create_scraper(
     browser={
         "browser": "chrome",
-        "platform": "darwin",
+        "platform": "linux",
+        "mobile": False
     }
 )
 
