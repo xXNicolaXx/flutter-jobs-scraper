@@ -14,7 +14,11 @@ def search(keyword, location, page=0):
     url = f"https://it.indeed.com/jobs?q={keyword}&l={location}&start={page*10}"
     print(f"[DEBUG] Indeed URL: {url}")
     
-    html = scraper.get(url).text
+    headers = {
+        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    }
+    html = scraper.get(url, headers=headers).text
     with open("debug_indeed.html", "w") as f:
         f.write(html)
         print("Salvato debug_indeed.html con la risposta Indeed")
