@@ -1,85 +1,62 @@
-import cloudscraper
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 
-scraper = cloudscraper.create_scraper(
-    browser={
-        "browser": "chrome",
-        "platform": "linux",
-        "mobile": False
-    }
-)
-
-
-def search(keyword, location, page=0):
+def search_indeed(keyword, location, page=0):
     url = f"https://it.indeed.com/jobs?q={keyword}&l={location}&start={page*10}"
     print(f"[DEBUG] Indeed URL: {url}")
-    
-    headers = {
-        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-    }
-    html = scraper.get(url, headers=headers).text
-    with open("debug_indeed.html", "w") as f:
-        f.write(html)
-        print("Salvato debug_indeed.html con la risposta Indeed")
-    soup = BeautifulSoup(html, "html.parser")
-    
-    # Salva l'HTML per debug (opzionale)
-    # with open("indeed_debug.html", "w", encoding="utf-8") as f:
-    #     f.write(html)
-    
+
     jobs = []
-    
-    # Prova diversi selettori comuni per Indeed
-    cards = soup.select("[data-jk]")
-    print(f"[DEBUG] Trovati {len(cards)} card con [data-jk]")
-    
-    for card in cards:
-        job_id = card.get("data-jk")
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)  # headless=True su server
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/118.0.0.0 Safari/537.36"
+        )
+        page_obj = context.new_page()
+        page_obj.goto(url, timeout=30000)
         
-        # Prova diversi selettori per il titolo
-        title = None
-        title_selectors = [
-            "h2.jobTitle span[title]",  # Nuovo formato
-            "h2 span[title]",
-            "h2 a span",
-            ".jobTitle span",
-            "h2.jobTitle",
-            "h2 a"
-        ]
+        # Attendi che i risultati siano caricati
+        try:
+            page_obj.wait_for_selector('[data-jk]', timeout=15000)
+        except:
+            print("[DEBUG] Timeout o blocco Cloudflare")
+            page_obj.screenshot(path="blocked.png")
+            with open("blocked.html", "w", encoding="utf-8") as f:
+                f.write(page_obj.content())
+            browser.close()
+            return []
+
+        # Salva screenshot e HTML per debug
+        page_obj.screenshot(path="indeed_debug.png")
+        with open("indeed_debug.html", "w", encoding="utf-8") as f:
+            f.write(page_obj.content())
+
+        soup = BeautifulSoup(page_obj.content(), "html.parser")
+        cards = soup.select("[data-jk]")
+        print(f"[DEBUG] Trovati {len(cards)} card con [data-jk]")
+
+        for card in cards:
+            job_id = card.get("data-jk")
+            title_tag = card.select_one("h2 span[title]") or card.select_one("h2 span")
+            title = title_tag.get("title") if title_tag and title_tag.get("title") else (title_tag.text.strip() if title_tag else "Senza titolo")
+            job_url = f"https://it.indeed.com/viewjob?jk={job_id}"
+            jobs.append({
+                "id": job_id,
+                "title": title,
+                "url": job_url,
+                "desc": "",
+                "site": "Indeed"
+            })
         
-        for selector in title_selectors:
-            title_tag = card.select_one(selector)
-            if title_tag:
-                # Prova prima l'attributo title, poi il testo
-                title = title_tag.get("title") or title_tag.text.strip()
-                if title:
-                    print(f"[DEBUG] Titolo trovato con selector '{selector}': {title}")
-                    break
-        
-        if not title:
-            title = "Senza titolo"
-            print(f"[DEBUG] Nessun titolo trovato per job_id: {job_id}")
-            # Stampa l'HTML del card per debug
-            print(f"[DEBUG] HTML card:\n{card.prettify()[:500]}")
-        
-        url = "https://it.indeed.com/viewjob?jk=" + job_id
-        
-        jobs.append({
-            "id": job_id,
-            "title": title,
-            "url": url,
-            "desc": "",
-            "site": "Indeed"
-        })
-    
+        browser.close()
+
     return jobs
 
 
-# Test diretto
 if __name__ == "__main__":
-    print("Testing Indeed scraper...")
-    results = search("flutter", "Italia", page=0)
-    print(f"\nTrovati {len(results)} risultati")
-    for job in results[:3]:
-        print(f"- {job['title']} | {job['url']}")
+    results = search_indeed("flutter", "Italia", page=0)
+    print(f"Trovati {len(results)} risultati")
+    for r in results[:5]:
+        print(f"- {r['title']} | {r['url']}")

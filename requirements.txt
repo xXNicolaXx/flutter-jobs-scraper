@@ -4,3 +4,4 @@ python-dotenv==1.0.1
 python-telegram-bot==20.4
 tqdm==4.65.0
 cloudscraper==1.2.71
+playwright==1.56.0
