@@ -1,8 +1,8 @@
-import sys
 from datetime import datetime
 from scrapers import indeed, iprogrammatori
 from utils import init_db, is_new_and_store, send_telegram_message, logger
-
+from dotenv import load_dotenv
+load_dotenv()
 # -------------------------------
 # FILTRO KEYWORD
 # -------------------------------
@@ -92,7 +92,7 @@ def main():
     if new_jobs:
         msg = f"🔔 <b>Nuovi annunci Flutter</b> ({len(new_jobs)})\n\n"
 
-        for job in new_jobs[:10]:  # evita messaggi enormi
+        for job in new_jobs:  # evita messaggi enormi
             title = job['title'].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             site = job['site'].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
